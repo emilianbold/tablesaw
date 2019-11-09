@@ -1,12 +1,10 @@
 package tech.tablesaw.plotly.components;
 
-import com.mitchellbosecke.pebble.error.PebbleException;
-import com.mitchellbosecke.pebble.template.PebbleTemplate;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.util.HashMap;
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class HoverLabel extends Component {
 
@@ -38,26 +36,16 @@ public class HoverLabel extends Component {
     return new HoverLabelBuilder();
   }
 
+  @Override
   public String asJavascript() {
-    Writer writer = new StringWriter();
-    PebbleTemplate compiledTemplate;
-
     try {
-      compiledTemplate = engine.getTemplate("hoverLabel_template.html");
-      compiledTemplate.evaluate(writer, getContext());
-    } catch (PebbleException | IOException e) {
-      e.printStackTrace();
-    }
-    return writer.toString();
-  }
+      ObjectMapper mapper = new ObjectMapper();
+      String js = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(new Bean(this));
 
-  private Map<String, Object> getContext() {
-    Map<String, Object> context = new HashMap<>();
-    context.put("bgColor", bgColor);
-    context.put("borderColor", borderColor);
-    context.put("nameLength", nameLength);
-    context.put("font", font);
-    return context;
+      return js;
+    } catch (JsonProcessingException ex) {
+      throw new RuntimeException(ex);
+    }
   }
 
   public static class HoverLabelBuilder {
@@ -101,6 +89,37 @@ public class HoverLabel extends Component {
     public HoverLabelBuilder bgColor(String bgColor) {
       this.bgColor = bgColor;
       return this;
+    }
+  }
+
+  @JsonPropertyOrder({"namelength", "font", "bgcolor", "bordercolor"})
+  static class Bean {
+
+    private final HoverLabel label;
+
+    Bean(HoverLabel label) {
+      this.label = label;
+    }
+
+    static Bean of(HoverLabel label) {
+      return new Bean(label);
+    }
+
+    public int getNamelength() {
+      return label.nameLength;
+    }
+
+    @JsonInclude(Include.NON_NULL)
+    public Object getFont() {
+      return Font.Bean.of(label.font);
+    }
+
+    public String getBgcolor() {
+      return label.bgColor;
+    }
+
+    public String getBordercolor() {
+      return label.borderColor;
     }
   }
 }
