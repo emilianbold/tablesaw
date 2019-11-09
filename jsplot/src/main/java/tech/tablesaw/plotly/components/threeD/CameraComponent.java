@@ -1,12 +1,8 @@
 package tech.tablesaw.plotly.components.threeD;
 
-import com.mitchellbosecke.pebble.error.PebbleException;
-import com.mitchellbosecke.pebble.template.PebbleTemplate;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.util.HashMap;
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import tech.tablesaw.plotly.components.Component;
 
 class CameraComponent extends Component {
@@ -23,24 +19,36 @@ class CameraComponent extends Component {
 
   @Override
   public String asJavascript() {
-    Writer writer = new StringWriter();
-    PebbleTemplate compiledTemplate;
-
     try {
-      compiledTemplate = engine.getTemplate("xyz_template.html");
+      ObjectMapper mapper = new ObjectMapper();
+      String js =
+          mapper.writerWithDefaultPrettyPrinter().writeValueAsString(new CameraComponentBean(this));
 
-      compiledTemplate.evaluate(writer, getContext());
-    } catch (PebbleException | IOException e) {
-      e.printStackTrace();
+      return js;
+    } catch (JsonProcessingException ex) {
+      throw new RuntimeException(ex);
     }
-    return writer.toString();
   }
 
-  private Map<String, Object> getContext() {
-    Map<String, Object> context = new HashMap<>();
-    context.put("x", x);
-    context.put("y", y);
-    context.put("z", z);
-    return context;
+  @JsonPropertyOrder({"x", "y", "z"})
+  static class CameraComponentBean {
+
+    private final CameraComponent source;
+
+    CameraComponentBean(CameraComponent c) {
+      this.source = c;
+    }
+
+    public double getX() {
+      return source.x;
+    }
+
+    public double getY() {
+      return source.y;
+    }
+
+    public double getZ() {
+      return source.z;
+    }
   }
 }
