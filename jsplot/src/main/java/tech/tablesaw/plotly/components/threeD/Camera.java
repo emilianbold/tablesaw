@@ -1,12 +1,10 @@
 package tech.tablesaw.plotly.components.threeD;
 
-import com.mitchellbosecke.pebble.error.PebbleException;
-import com.mitchellbosecke.pebble.template.PebbleTemplate;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.util.HashMap;
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import tech.tablesaw.plotly.components.Component;
 
 public class Camera extends Component {
@@ -21,29 +19,44 @@ public class Camera extends Component {
     this.center = builder.center;
   }
 
-  private Map<String, Object> getContext() {
-    Map<String, Object> context = new HashMap<>();
-    context.put("up", up);
-    context.put("eye", eye);
-    context.put("center", center);
-    return context;
+  @JsonPropertyOrder({"eye", "center", "up"})
+  static class Bean {
+
+    private final Camera camera;
+
+    Bean(Camera target) {
+      this.camera = target;
+    }
+
+    @JsonInclude(Include.NON_NULL)
+    public Object getUp() {
+      return CameraComponent.Bean.of(camera.up);
+    }
+
+    @JsonInclude(Include.NON_NULL)
+    public Object getEye() {
+      return CameraComponent.Bean.of(camera.eye);
+    }
+
+    @JsonInclude(Include.NON_NULL)
+    public Object getCenter() {
+      return CameraComponent.Bean.of(camera.center);
+    }
   }
 
   @Override
   public String asJavascript() {
-    Writer writer = new StringWriter();
-    PebbleTemplate compiledTemplate;
     try {
-      compiledTemplate = engine.getTemplate("camera_template.html");
+      ObjectMapper mapper = new ObjectMapper();
+      String js = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(new Bean(this));
 
-      compiledTemplate.evaluate(writer, getContext());
-    } catch (PebbleException | IOException e) {
-      e.printStackTrace();
+      return js;
+    } catch (JsonProcessingException ex) {
+      throw new RuntimeException(ex);
     }
-    return writer.toString();
   }
 
-  public CameraBuilder cameraBuilder() {
+  public static CameraBuilder cameraBuilder() {
     return new CameraBuilder();
   }
 

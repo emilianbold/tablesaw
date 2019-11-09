@@ -21,8 +21,7 @@ class CameraComponent extends Component {
   public String asJavascript() {
     try {
       ObjectMapper mapper = new ObjectMapper();
-      String js =
-          mapper.writerWithDefaultPrettyPrinter().writeValueAsString(new CameraComponentBean(this));
+      String js = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(new Bean(this));
 
       return js;
     } catch (JsonProcessingException ex) {
@@ -31,12 +30,20 @@ class CameraComponent extends Component {
   }
 
   @JsonPropertyOrder({"x", "y", "z"})
-  static class CameraComponentBean {
+  static class Bean {
 
     private final CameraComponent source;
 
-    CameraComponentBean(CameraComponent c) {
+    Bean(CameraComponent c) {
       this.source = c;
+    }
+
+    static Bean of(CameraComponent c) {
+      if (c == null) {
+        return null;
+      } else {
+        return new Bean(c);
+      }
     }
 
     public double getX() {
