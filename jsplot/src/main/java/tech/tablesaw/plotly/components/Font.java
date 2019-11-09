@@ -1,13 +1,9 @@
 package tech.tablesaw.plotly.components;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
-import com.mitchellbosecke.pebble.error.PebbleException;
-import com.mitchellbosecke.pebble.template.PebbleTemplate;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
 public class Font extends Component {
@@ -56,26 +52,42 @@ public class Font extends Component {
     return new FontBuilder();
   }
 
+  @Override
   public String asJavascript() {
-    Writer writer = new StringWriter();
-    PebbleTemplate compiledTemplate;
-
     try {
-      compiledTemplate = engine.getTemplate("font_template.html");
+      ObjectMapper mapper = new ObjectMapper();
+      String js = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(new Bean(this));
 
-      compiledTemplate.evaluate(writer, getContext());
-    } catch (PebbleException | IOException e) {
-      e.printStackTrace();
+      return js;
+    } catch (JsonProcessingException ex) {
+      throw new RuntimeException(ex);
     }
-    return writer.toString();
   }
 
-  private Map<String, Object> getContext() {
-    Map<String, Object> context = new HashMap<>();
-    context.put("size", size);
-    context.put("family", fontFamily);
-    context.put("color", color);
-    return context;
+  @JsonPropertyOrder({"family", "size", "color"})
+  static class Bean {
+
+    private final Font font;
+
+    Bean(Font f) {
+      this.font = f;
+    }
+
+    static Bean of(Font f) {
+      return f == null ? null : new Bean(f);
+    }
+
+    public String getFamily() {
+      return String.valueOf(font.fontFamily);
+    }
+
+    public int getSize() {
+      return font.size;
+    }
+
+    public String getColor() {
+      return font.color;
+    }
   }
 
   public static class FontBuilder {
