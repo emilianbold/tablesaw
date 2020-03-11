@@ -18,7 +18,12 @@ install:
   - export MAVEN_OPTS=-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 script:
   # the following command line builds the project, runs the tests with coverage and then execute the SonarCloud analysis
-  - mvn -B clean org.jacoco:jacoco-maven-plugin:prepare-agent install sonar:sonar -Dsonar.projectKey=jtablesaw_tablesaw
+  - |
+    if [ "${SONAR_SCANNER_HOME}" != "" ]; then
+      mvn -B clean org.jacoco:jacoco-maven-plugin:prepare-agent install sonar:sonar -Dsonar.projectKey=jtablesaw_tablesaw
+    else
+      mvn -B clean org.jacoco:jacoco-maven-plugin:prepare-agent install
+    fi;
 after_success: 
   - find . -name jacoco.xml | xargs java -jar codacy-coverage-reporter-assembly.jar report --language Java --partial --coverage-reports
   - java -jar codacy-coverage-reporter-assembly.jar final
